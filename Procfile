@@ -1,1 +1,1 @@
-web: beautifulsky -port=$PORT
+web: beautifulsky 
