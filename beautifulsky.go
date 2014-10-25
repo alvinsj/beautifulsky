@@ -64,6 +64,8 @@ func GetTweets(client *twittergo.Client, k chan *twittergo.SearchResults, r chan
 
 	query := url.Values{}
 	query.Set("q", "#beautifulsky")
+	query.Set("result_type", "recent")
+	query.Set("count","100")
 	url := fmt.Sprintf("/1.1/search/tweets.json?%v", query.Encode())
 	req, err = http.NewRequest("GET", url, nil)
 	if err != nil {
