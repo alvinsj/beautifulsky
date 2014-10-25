@@ -3,6 +3,10 @@
 	"GoVersion": "go1.3.3",
 	"Deps": [
 		{
+			"ImportPath": "github.com/gin-gonic/contrib/static",
+			"Rev": "e9efbef205f470b07afe985980f9074bb955f39d"
+		},
+		{
 			"ImportPath": "github.com/gin-gonic/gin",
 			"Comment": "v0.4-8-g3b079bb",
 			"Rev": "3b079bb6f79ae501e73a5401c41b589f6616b61e"

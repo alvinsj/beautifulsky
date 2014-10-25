@@ -10,6 +10,7 @@ import (
 	"time"
 	"fmt"
 	"encoding/json"
+	"github.com/gin-gonic/contrib/static"
 )
 
 
@@ -107,9 +108,14 @@ func PrintRateLimit(r chan *twittergo.APIResponse){
 
 func main() {
     r := gin.Default()
-    r.GET("/", func(c *gin.Context) {
-        c.String(200, "200")
-    })
+
+    pwd, err := os.Getwd()
+	if err != nil {
+	    panic(err)
+	}
+
+    r.Use(static.Serve(pwd+"/frontend/public")) 
+	r.NoRoute(static.Serve(pwd+"/frontend/public")) 
 
     r.GET("/ping", func(c *gin.Context) {
         c.String(200, "pong")
