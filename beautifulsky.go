@@ -1,5 +1,6 @@
 package main
 
+import "os"
 import "github.com/gin-gonic/gin"
 
 func main() {
@@ -12,5 +13,5 @@ func main() {
     })
 
     // Listen and server on 0.0.0.0:8080
-    r.Run(":8080")
+    r.Run(":"+os.Getenv("PORT"))
 }
