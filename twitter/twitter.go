@@ -47,11 +47,11 @@ func (tw Twitter) Memoize(resp map[string]string, tweetId uint64, key string, va
 func (tw Twitter) TweetsFromResults(c *gin.Context, results *twittergo.SearchResults, t chan map[string]string, done chan bool) {
 	conn, _ := redis.Dial("tcp", REDISTOGO.Host)
 	fmt.Printf("start TweetsFromResults \n")
+	tweets := []uint64{}
 
 	for _, tweet := range results.Statuses() {
 
 		user := tweet.User()
-
 		entities := tweet["entities"].(map[string]interface{})
 		//media := entities["media"].([]interface{})
 		urls := entities["urls"].([]interface{})
@@ -65,25 +65,28 @@ func (tw Twitter) TweetsFromResults(c *gin.Context, results *twittergo.SearchRes
 			reply, _ := redis.Values(conn.Do("KEYS", fmt.Sprintf("tweet:%v", tweet.Id())))
 			fmt.Printf("values: %v", reply)
 			if len(reply) == 0 {
-				conn.Do("RPUSH", "tweets", tweet.Id())
+				tweets = append(tweets, tweet.Id())
 			}
 
 			resp = tw.Memoize(resp, tweet.Id(), "tweet", fmt.Sprintf("%v", tweet.Text()))
 			resp = tw.Memoize(resp, tweet.Id(), "image_source", fmt.Sprintf("%v", source["expanded_url"]))
 			//resp = tw.Memoize(resp, tweet.Id(), "image_url", fmt.Sprintf("%v", url["media_url"]))
-			resp = tw.Memoize(resp, tweet.Id(), "user", fmt.Sprintf("%v (@%v) ", user.Name(), user.ScreenName()))
+			resp = tw.Memoize(resp, tweet.Id(), "user", fmt.Sprintf("%v (@%v)", user.Name(), user.ScreenName()))
 			resp = tw.Memoize(resp, tweet.Id(), "created", fmt.Sprintf("%v", tweet.CreatedAt().Format(time.RFC1123)))
 			t <- resp
 		}
 	}
+	for i:=len(tweets)-1; i >= 0; i-- {
+		conn.Do("LPUSH", "tweets", tweets[i])
+	}
+
 	fmt.Printf("end TweetsFromResults \n")
 }
 
 
-func (tw Twitter) RetrieveMaxId() (string, bool){
+func (tw Twitter) RetrieveSinceId() (string, bool){
 	conn, _ := redis.Dial("tcp", REDISTOGO.Host)
-	l, _ := redis.Int(conn.Do("LLEN", "tweets"))
-	reply, _ := redis.String( conn.Do("LINDEX", "tweets", l-1) )
+	reply, _ := redis.String( conn.Do("LINDEX", "tweets", 0) )
 	if reply == "" {
 		return reply, false
 	} else {
@@ -98,9 +101,9 @@ func (tw Twitter) ConstructParams() url.Values {
 	query.Set("result_type", "mixed")
 	query.Set("count", "100")
 	
-	if maxId, present := tw.RetrieveMaxId(); present {
-		fmt.Printf("maxId: %v", maxId)
-		query.Set("max_id", maxId)
+	if id, present := tw.RetrieveSinceId(); present {
+		fmt.Printf("sinceId: %v", id)
+		query.Set("since_id", id)
 	}
 	return query
 }
