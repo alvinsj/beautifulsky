@@ -51,11 +51,14 @@ func (tw Twitter) TweetsFromResults(c *gin.Context, results *twittergo.SearchRes
 	for _, tweet := range results.Statuses() {
 
 		user := tweet.User()
+
 		entities := tweet["entities"].(map[string]interface{})
+		//media := entities["media"].([]interface{})
 		urls := entities["urls"].([]interface{})
 
 		if len(urls) > 0 {
-			url := urls[0].(map[string]interface{})
+			source := urls[0].(map[string]interface{})
+			//url := media[0].(map[string]interface{})
 
 			resp := make(map[string]string)
 
@@ -66,7 +69,8 @@ func (tw Twitter) TweetsFromResults(c *gin.Context, results *twittergo.SearchRes
 			}
 
 			resp = tw.Memoize(resp, tweet.Id(), "tweet", fmt.Sprintf("%v", tweet.Text()))
-			resp = tw.Memoize(resp, tweet.Id(), "image", fmt.Sprintf("%v", url["expanded_url"]))
+			resp = tw.Memoize(resp, tweet.Id(), "image_source", fmt.Sprintf("%v", source["expanded_url"]))
+			//resp = tw.Memoize(resp, tweet.Id(), "image_url", fmt.Sprintf("%v", url["media_url"]))
 			resp = tw.Memoize(resp, tweet.Id(), "user", fmt.Sprintf("%v (@%v) ", user.Name(), user.ScreenName()))
 			resp = tw.Memoize(resp, tweet.Id(), "created", fmt.Sprintf("%v", tweet.CreatedAt().Format(time.RFC1123)))
 			t <- resp
@@ -144,7 +148,7 @@ func (tw Twitter) TweetsFromCache(t chan map[string]string, cacheDone chan bool)
 	for i:=0; i< l; i++ {
 		tweetId, _ := redis.String(conn.Do("LINDEX", "tweets", i))
 		var resp map[string]string = make(map[string]string)
-		for _, key := range []string{"tweet","image","user","created"} {
+		for _, key := range []string{"tweet","image_source", "image_url","user","created"} {
 			reply,_ := redis.String( conn.Do("HGET", "tweet:"+tweetId, key) )
 			resp[key] = reply
 		}
