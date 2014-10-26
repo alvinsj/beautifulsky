@@ -17,7 +17,8 @@ type Twitter struct{}
 var (
 	TWITTER_COSUMER_KEY     = os.Getenv("TWITTER_CONSUMER_KEY")
 	TWITTER_CONSUMER_SECRET = os.Getenv("TWITTER_CONSUMER_SECRET")
-	conn, redisErr          = redis.Dial("tcp", os.Getenv("REDISTOGO"))
+	REDISTOGO, _ = url.Parse(os.Getenv("REDISTOGO"))
+	conn, redisErr = redis.Dial("tcp", REDISTOGO.Host)
 )
 
 
@@ -140,7 +141,7 @@ func (tw Twitter) SearchTweets( k chan *twittergo.SearchResults, r chan *twitter
 
 
 func (tw Twitter) TweetsFromCache(t chan map[string]string, cacheDone chan bool) {
-    conn, redisErr = redis.Dial("tcp", os.Getenv("REDISTOGO"))
+    conn, redisErr = redis.Dial("tcp", REDISTOGO.Host)
 	l, _ := redis.Int(conn.Do("LLEN", "tweets"))
 	for i:=0; i< l; i++ {
 		tweetId, _ := redis.String(conn.Do("LINDEX", "tweets", i))
