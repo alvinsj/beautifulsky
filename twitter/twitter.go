@@ -17,7 +17,7 @@ type Twitter struct{}
 var (
 	TWITTER_COSUMER_KEY     = os.Getenv("TWITTER_CONSUMER_KEY")
 	TWITTER_CONSUMER_SECRET = os.Getenv("TWITTER_CONSUMER_SECRET")
-	REDISTOGO, _ = url.Parse(os.Getenv("REDISTOGO"))
+	REDISTOGO, _ = url.Parse(os.Getenv("REDISTOGO_URL"))
 )
 
 
