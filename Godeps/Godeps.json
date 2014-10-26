@@ -3,6 +3,10 @@
 	"GoVersion": "go1.3.3",
 	"Deps": [
 		{
+			"ImportPath": "github.com/garyburd/redigo/redis",
+			"Rev": "08550c8cc5b9d419fc472629d749d33b98f1d785"
+		},
+		{
 			"ImportPath": "github.com/gin-gonic/contrib/static",
 			"Rev": "e9efbef205f470b07afe985980f9074bb955f39d"
 		},
