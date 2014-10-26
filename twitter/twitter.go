@@ -18,7 +18,6 @@ var (
 	TWITTER_COSUMER_KEY     = os.Getenv("TWITTER_CONSUMER_KEY")
 	TWITTER_CONSUMER_SECRET = os.Getenv("TWITTER_CONSUMER_SECRET")
 	REDISTOGO, _ = url.Parse(os.Getenv("REDISTOGO"))
-	conn, redisErr = redis.Dial("tcp", REDISTOGO.Host)
 )
 
 
@@ -34,6 +33,7 @@ func (tw Twitter) LoadCredentials() (client *twittergo.Client, err error) {
 
 
 func (tw Twitter) Memoize(resp map[string]string, tweetId uint64, key string, value string) map[string]string {
+	conn, _ := redis.Dial("tcp", REDISTOGO.Host)
 	cache, _ := redis.String(conn.Do("HGET", fmt.Sprintf("tweet:%v", tweetId), key))
     if cache == "" {
 		conn.Do("HSET", fmt.Sprintf("tweet:%v", tweetId), key, value)
@@ -45,7 +45,7 @@ func (tw Twitter) Memoize(resp map[string]string, tweetId uint64, key string, va
 
 
 func (tw Twitter) TweetsFromResults(c *gin.Context, results *twittergo.SearchResults, t chan map[string]string, done chan bool) {
-
+	conn, _ := redis.Dial("tcp", REDISTOGO.Host)
 	fmt.Printf("start TweetsFromResults \n")
 
 	for _, tweet := range results.Statuses() {
@@ -56,10 +56,6 @@ func (tw Twitter) TweetsFromResults(c *gin.Context, results *twittergo.SearchRes
 
 		if len(urls) > 0 {
 			url := urls[0].(map[string]interface{})
-
-			if redisErr != nil {
-				fmt.Printf("Redis error: %v\n", redisErr)
-			}
 
 			resp := make(map[string]string)
 
@@ -81,6 +77,7 @@ func (tw Twitter) TweetsFromResults(c *gin.Context, results *twittergo.SearchRes
 
 
 func (tw Twitter) RetrieveMaxId() (string, bool){
+	conn, _ := redis.Dial("tcp", REDISTOGO.Host)
 	l, _ := redis.Int(conn.Do("LLEN", "tweets"))
 	reply, _ := redis.String( conn.Do("LINDEX", "tweets", l-1) )
 	if reply == "" {
@@ -141,7 +138,8 @@ func (tw Twitter) SearchTweets( k chan *twittergo.SearchResults, r chan *twitter
 
 
 func (tw Twitter) TweetsFromCache(t chan map[string]string, cacheDone chan bool) {
-    conn, redisErr = redis.Dial("tcp", REDISTOGO.Host)
+    conn, _ := redis.Dial("tcp", REDISTOGO.Host)
+
 	l, _ := redis.Int(conn.Do("LLEN", "tweets"))
 	for i:=0; i< l; i++ {
 		tweetId, _ := redis.String(conn.Do("LINDEX", "tweets", i))
