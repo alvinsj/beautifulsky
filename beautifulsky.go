@@ -25,7 +25,7 @@ func main() {
 		c.String(200, "pong")
 	})
 
-	r.GET("/images", func(c *gin.Context) {
+	r.GET("/tweets", func(c *gin.Context) {
 
 		k := make(chan *twittergo.SearchResults)
 		r := make(chan *twittergo.APIResponse)
