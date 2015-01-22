@@ -25,61 +25,65 @@ func main() {
 		c.String(200, "pong")
 	})
 
-	r.GET("/tweets", func(c *gin.Context) {
+	r.GET("/tweets", func(ctx *gin.Context) {
 
-		k := make(chan *twittergo.SearchResults)
-		r := make(chan *twittergo.APIResponse)
-		t := make(chan map[string]string)
-		done := make(chan bool)
-		tweetsFromCacheDone := make(chan bool)
-        tw := twitter.Twitter{}
-		
-		go tw.SearchTweets(k, r)
-		go tw.TweetsFromCache(t, tweetsFromCacheDone)
+		rawRespCh := make(chan *twittergo.SearchResults)
+		respCh := make(chan *twittergo.APIResponse)
+		msgCh := make(chan map[string]string)
 
-        // parse tweets from twitter 
+		newRespDone := make(chan bool)
+		cachedRespDone := make(chan bool)
+
+		tw := twitter.Twitter{}
+
+		// spawn tweet search worker
+		go tw.SearchTweets(rawRespCh, respCh)
+		// spawn tweet cache fetch worker
+		go tw.TweetsFromCache(msgCh, cachedRespDone)
+
+        // parse response from twitter API
 		go func() {
-            <- tweetsFromCacheDone
+            <- cachedRespDone
 			for {
-                results, more := <-k
+                results, more := <- rawRespCh
 
 				if more {
-					tw.TweetsFromResults(c, results, t, done)
+					// parse response from twitter API
+					tw.TweetsFromResults(ctx, results, msgCh, newRespDone)
 				} else {
-					close(t)
+					close(msgCh)
 					return
 				}
 			}
-
 		}()
-		
-        // pipe results to response
+
+		// pipe messages to response
 		go func() {
             i := 0
-            c.Data(200, "application/json", []byte("["))
-			
+            ctx.Data(200, "application/json", []byte("["))
+
             for {
-				resp, more := <-t
+				resp, more := <- msgCh
                 if more {
 					fmt.Println("received response")
 					if i != 0 {
-						c.Data(200, "application/json", []byte(","))
+						ctx.Data(200, "application/json", []byte(","))
 					}
 
 					jsonString, _ := json.Marshal(resp)
-					c.Data(200, "application/json", []byte(jsonString))
+					ctx.Data(200, "application/json", []byte(jsonString))
 					i++
 
 				} else {
 					fmt.Println("received all jobs")
-					c.Data(200, "application/json", []byte("]"))
-					done <- true
+					ctx.Data(200, "application/json", []byte("]"))
+					newRespDone <- true
 					return
 				}
 			}
 		}()
-		<-done
-        tw.PrintRateLimit(r)
+		<-newRespDone
+        tw.PrintRateLimit(respCh)
 	})
 
 	r.Run(":" + os.Getenv("PORT"))

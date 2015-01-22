@@ -32,47 +32,64 @@ func (tw Twitter) LoadCredentials() (client *twittergo.Client, err error) {
 }
 
 
-func (tw Twitter) Memoize(resp map[string]string, tweetId uint64, key string, value string) map[string]string {
-	conn, _ := redis.Dial("tcp", REDISTOGO.Host)
-	cache, _ := redis.String(conn.Do("HGET", fmt.Sprintf("tweet:%v", tweetId), key))
-    if cache == "" {
-		conn.Do("HSET", fmt.Sprintf("tweet:%v", tweetId), key, value)
+func (tw Twitter) Memoize(resp map[string]string, tweetId uint64,
+		key string, value string) map[string]string {
+
+	conn, _		:= redis.Dial("tcp", REDISTOGO.Host)
+
+	tweetRedisKey 	:= fmt.Sprintf("tweet:%v", tweetId)
+	cache, _ 	:= redis.String(conn.Do("HGET", tweetRedisKey, key))
+
+	if cache == "" {
+		conn.Do("HSET", tweetRedisKey, key, value)
 		cache = value
 	}
+
 	resp[key] = cache
 	return resp
 }
 
 
-func (tw Twitter) TweetsFromResults(c *gin.Context, results *twittergo.SearchResults, t chan map[string]string, done chan bool) {
+func (tw Twitter) TweetsFromResults(
+		c *gin.Context, results *twittergo.SearchResults,
+		t chan map[string]string, done chan bool) {
+
 	conn, _ := redis.Dial("tcp", REDISTOGO.Host)
-	fmt.Printf("start TweetsFromResults \n")
 	tweets := []uint64{}
+
+	fmt.Printf("start TweetsFromResults \n")
 
 	for _, tweet := range results.Statuses() {
 
-		user := tweet.User()
-		entities := tweet["entities"].(map[string]interface{})
-		//media := entities["media"].([]interface{})
-		urls := entities["urls"].([]interface{})
+		user 		:= tweet.User()
+		entities 	:= tweet["entities"].(map[string]interface{})
+		//media 	:= entities["media"].([]interface{})
+		urls 		:= entities["urls"].([]interface{})
 
 		if len(urls) > 0 {
-			source := urls[0].(map[string]interface{})
-			//url := media[0].(map[string]interface{})
+			source 	:= urls[0].(map[string]interface{})
+			resp 	:= make(map[string]string)
 
-			resp := make(map[string]string)
-
-			reply, _ := redis.Values(conn.Do("KEYS", fmt.Sprintf("tweet:%v", tweet.Id())))
+			//url	:= media[0].(map[string]interface{})
+			tweetId 		:= tweet.Id()
+			tweetRedisKey 	:= fmt.Sprintf("tweet:%v", tweetId)
+			reply, _ 	:= redis.Values(conn.Do("KEYS", tweetRedisKey))
 			fmt.Printf("values: %v", reply)
 			if len(reply) == 0 {
 				tweets = append(tweets, tweet.Id())
 			}
 
-			resp = tw.Memoize(resp, tweet.Id(), "tweet", fmt.Sprintf("%v", tweet.Text()))
-			resp = tw.Memoize(resp, tweet.Id(), "image_source", fmt.Sprintf("%v", source["expanded_url"]))
-			//resp = tw.Memoize(resp, tweet.Id(), "image_url", fmt.Sprintf("%v", url["media_url"]))
-			resp = tw.Memoize(resp, tweet.Id(), "user", fmt.Sprintf("%v (@%v)", user.Name(), user.ScreenName()))
-			resp = tw.Memoize(resp, tweet.Id(), "created", fmt.Sprintf("%v", tweet.CreatedAt().Format(time.RFC1123)))
+			//resp = tw.Memoize(resp, tweet.Id(), "image_url",
+			//	fmt.Sprintf("%v", url["media_url"]))
+			resp = tw.Memoize(resp, tweetId, "tweet",
+				fmt.Sprintf("%v", tweet.Text()))
+			resp = tw.Memoize(resp, tweetId, "image_source",
+				fmt.Sprintf("%v", source["expanded_url"]))
+			resp = tw.Memoize(resp, tweetId, "user",
+				fmt.Sprintf("%v (@%v)", user.Name(), user.ScreenName()))
+			resp = tw.Memoize(resp, tweetId, "created",
+				fmt.Sprintf("%v", tweet.CreatedAt().Format(time.RFC1123)))
+
 			t <- resp
 		}
 	}
@@ -100,7 +117,7 @@ func (tw Twitter) ConstructParams() url.Values {
 	query.Set("q", "#beautifulsky")
 	query.Set("result_type", "mixed")
 	query.Set("count", "100")
-	
+
 	if id, present := tw.RetrieveSinceId(); present {
 		fmt.Printf("sinceId: %v", id)
 		query.Set("since_id", id)
@@ -109,7 +126,8 @@ func (tw Twitter) ConstructParams() url.Values {
 }
 
 
-func (tw Twitter) SearchTweets( k chan *twittergo.SearchResults, r chan *twittergo.APIResponse) {
+func (tw Twitter) SearchTweets(k chan *twittergo.SearchResults,
+		r chan *twittergo.APIResponse){
 	var (
 		err     error
 		results *twittergo.SearchResults
