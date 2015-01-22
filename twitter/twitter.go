@@ -166,7 +166,7 @@ func (tw Twitter) TweetsFromCache(t chan map[string]string, cacheDone chan bool)
     conn, _ := redis.Dial("tcp", REDISTOGO.Host)
 
 	l, _ := redis.Int(conn.Do("LLEN", "tweets"))
-	for i:=0; i< l && i< 50; i++ {
+	for i:=0; i< l && i< 200; i++ {
 		tweetId, _ := redis.String(conn.Do("LINDEX", "tweets", i))
 		var resp map[string]string = make(map[string]string)
 		for _, key := range []string{"tweet","image_source", "image_url","user","created"} {
