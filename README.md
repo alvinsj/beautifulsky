@@ -2,7 +2,8 @@
 
 This is a hack project to try out:
 - [golang](https://golang.org/)'s [concurrency patterns](https://www.youtube.com/watch?v=f6kdp27TYZs), e.g. channels and goroutine (wip), and server side streaming.
-- [reactjs](https://github.com/facebook/react), [oboe.js](https://github.com/jimhigson/oboe.js) with [frontend scripting](https://github.com/alvinsj/beautifulsky-frontend).
+- [reactjs](https://github.com/facebook/react), [oboe.js](https://github.com/jimhigson/oboe.js) on its [frontend ](https://github.com/alvinsj/beautifulsky-frontend).  
+- [flexo](http://getflexo.com/) flexbox boilerplate.
 
 #### Libraries
 - Twitter client: [twittergo](https://github.com/kurrik/twittergo)
