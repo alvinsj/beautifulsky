@@ -1,8 +1,10 @@
 [beautifulsky.today](http://beautifulsky.today) - Pictures of beautiful sky. 
 
 This is a hack project to try out:
-- [golang](https://golang.org/)'s [concurrency patterns](https://www.youtube.com/watch?v=f6kdp27TYZs), e.g. channels and goroutine (wip), and server side streaming.
-- [reactjs](https://github.com/facebook/react), [oboe.js](https://github.com/jimhigson/oboe.js) with [frontend scripting](https://github.com/alvinsj/beautifulsky-frontend).
+- [golang](https://golang.org/): concurrency patterns, e.g. channels, goroutine, server side streaming.
+- [reactjs](https://github.com/facebook/react): reactive pattern
+- [oboe.js](https://github.com/jimhigson/oboe.js): browser side streaming
+- [flexo](http://getflexo.com/): css flexbox boilerplate.
 
 #### Libraries
 - Twitter client: [twittergo](https://github.com/kurrik/twittergo)
@@ -17,6 +19,9 @@ This is a hack project to try out:
     $ export TWITTER_CONSUMER_KEY=?; export TWITTER_CONSUME_SECRET=?
     $ export PORT=8080; export REDISTOGO_URL=redis://localhost:6379
     $ go run beautifulsky.go
+
+#### Requirement  
+- [alvinsj/beautifulsky-frontend](https://github.com/alvinsj/beautifulsky-frontend).
 
 #### License
 See LICENSE
