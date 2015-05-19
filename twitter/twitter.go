@@ -12,14 +12,15 @@ import (
 	"time"
 )
 
-type Twitter struct{}
+type Twitter struct{
+}
 
 var (
 	TWITTER_COSUMER_KEY     = os.Getenv("TWITTER_CONSUMER_KEY")
 	TWITTER_CONSUMER_SECRET = os.Getenv("TWITTER_CONSUMER_SECRET")
 	REDISTOGO, _ = url.Parse(os.Getenv("REDISTOGO_URL"))
+ 	conn, _ = redis.Dial("tcp", REDISTOGO.Host)
 )
-
 
 func (tw Twitter) LoadCredentials() (client *twittergo.Client, err error) {
 	config := &oauth1a.ClientConfig{
@@ -31,19 +32,16 @@ func (tw Twitter) LoadCredentials() (client *twittergo.Client, err error) {
 	return
 }
 
-
 func (tw Twitter) Memoize(resp map[string]string, tweetId uint64,
 		key string, value string) map[string]string {
 
-	conn, _		:= redis.Dial("tcp", REDISTOGO.Host)
+		tweetRedisKey	:= fmt.Sprintf("tweet:%v", tweetId)
+		cache, err := redis.String(conn.Do("HGET", tweetRedisKey, key))
 
-	tweetRedisKey 	:= fmt.Sprintf("tweet:%v", tweetId)
-	cache, _ 	:= redis.String(conn.Do("HGET", tweetRedisKey, key))
-
-	if cache == "" {
-		conn.Do("HSET", tweetRedisKey, key, value)
-		cache = value
-	}
+		if err != nil && cache == "" {
+			conn.Do("HSET", tweetRedisKey, key, value)
+			cache = value
+		}
 
 	resp[key] = cache
 	return resp
@@ -54,16 +52,12 @@ func (tw Twitter) TweetsFromResults(
 		c *gin.Context, results *twittergo.SearchResults,
 		t chan map[string]string, done chan bool) {
 
-	conn, _ := redis.Dial("tcp", REDISTOGO.Host)
-	tweets := []uint64{}
-
-	fmt.Printf("start TweetsFromResults \n")
+		tweets := []uint64{}
 
 	for _, tweet := range results.Statuses() {
 
 		user 		:= tweet.User()
 		entities 	:= tweet["entities"].(map[string]interface{})
-		//media 	:= entities["media"].([]interface{})
 		urls 		:= entities["urls"].([]interface{})
 
 		if len(urls) > 0 {
@@ -74,17 +68,37 @@ func (tw Twitter) TweetsFromResults(
 			tweetId 		:= tweet.Id()
 			tweetRedisKey 	:= fmt.Sprintf("tweet:%v", tweetId)
 			reply, _ 	:= redis.Values(conn.Do("KEYS", tweetRedisKey))
-			fmt.Printf("values: %v", reply)
+			//fmt.Printf("values: %v", reply)
 			if len(reply) == 0 {
 				tweets = append(tweets, tweet.Id())
 			}
 
-			//resp = tw.Memoize(resp, tweet.Id(), "image_url",
-			//	fmt.Sprintf("%v", url["media_url"]))
+			media, ok 	:= entities["media"]
+			//fmt.Printf("media: %v", ok)
+			if ok {
+				content := media.([]interface{})
+				first := content[0].(map[string]interface{})
+				if first["type"] == "photo" {
+					resp = tw.Memoize(resp, tweetId, "image_source",
+						fmt.Sprintf("%v", first["media_url"]))
+
+					sizes := first["sizes"].(map[string]interface{})
+					small := sizes["small"].(map[string]interface{})
+					h := small["h"].(int64)
+					w := small["w"].(int64)
+					resp = tw.Memoize(resp, tweetId, "width", 
+						fmt.Sprintf("%d", w))
+					resp = tw.Memoize(resp, tweetId, "height", 
+						fmt.Sprintf("%d", h))
+				}
+			}else {
+				resp = tw.Memoize(resp, tweetId, "image_source",
+					fmt.Sprintf("%v", source["expanded_url"]))
+			}
+			resp = tw.Memoize(resp, tweetId, "tweet_id",
+				fmt.Sprintf("%v", tweetId))
 			resp = tw.Memoize(resp, tweetId, "tweet",
 				fmt.Sprintf("%v", tweet.Text()))
-			resp = tw.Memoize(resp, tweetId, "image_source",
-				fmt.Sprintf("%v", source["expanded_url"]))
 			resp = tw.Memoize(resp, tweetId, "user",
 				fmt.Sprintf("%v (@%v)", user.Name(), user.ScreenName()))
 			resp = tw.Memoize(resp, tweetId, "created",
@@ -102,7 +116,6 @@ func (tw Twitter) TweetsFromResults(
 
 
 func (tw Twitter) RetrieveSinceId() (string, bool){
-	conn, _ := redis.Dial("tcp", REDISTOGO.Host)
 	reply, _ := redis.String( conn.Do("LINDEX", "tweets", 0) )
 	if reply == "" {
 		return reply, false
@@ -112,7 +125,20 @@ func (tw Twitter) RetrieveSinceId() (string, bool){
 }
 
 
-func (tw Twitter) ConstructParams() url.Values {
+func (tw Twitter) TwitterImages() url.Values {
+	query := url.Values{}
+	query.Set("q", "#beautifulsky filter:images")
+	query.Set("result_type", "mixed")
+	query.Set("count", "100")
+
+	if id, present := tw.RetrieveSinceId(); present {
+		fmt.Printf("sinceId: %v", id)
+		query.Set("since_id", id)
+	}
+	return query
+}
+
+func (tw Twitter) Instagram() url.Values {
 	query := url.Values{}
 	query.Set("q", "#beautifulsky")
 	query.Set("result_type", "mixed")
@@ -126,8 +152,9 @@ func (tw Twitter) ConstructParams() url.Values {
 }
 
 
-func (tw Twitter) SearchTweets(k chan *twittergo.SearchResults,
-		r chan *twittergo.APIResponse){
+
+func (tw Twitter) SearchTweets(query url.Values, k chan *twittergo.SearchResults,
+		r chan *twittergo.APIResponse, searchDone chan bool){
 	var (
 		err     error
 		results *twittergo.SearchResults
@@ -137,9 +164,8 @@ func (tw Twitter) SearchTweets(k chan *twittergo.SearchResults,
 	)
 	client, _ = tw.LoadCredentials()
 
-	query := tw.ConstructParams()
-
 	url := fmt.Sprintf("/1.1/search/tweets.json?%v", query.Encode())
+
 	req, err = http.NewRequest("GET", url, nil)
 	if err != nil {
 		fmt.Printf("Could not parse request: %v\n", err)
@@ -157,19 +183,18 @@ func (tw Twitter) SearchTweets(k chan *twittergo.SearchResults,
 	}
 
 	k <- results
-	close(k)
+	searchDone <- true
 	r <- resp
 }
 
 
 func (tw Twitter) TweetsFromCache(t chan map[string]string, cacheDone chan bool) {
-    conn, _ := redis.Dial("tcp", REDISTOGO.Host)
 
 	l, _ := redis.Int(conn.Do("LLEN", "tweets"))
-	for i:=0; i< l && i< 200; i++ {
+	for i:=0; i< l && i< 50; i++ {
 		tweetId, _ := redis.String(conn.Do("LINDEX", "tweets", i))
 		var resp map[string]string = make(map[string]string)
-		for _, key := range []string{"tweet","image_source", "image_url","user","created"} {
+		for _, key := range []string{"tweet","image_source", "image_url","user","created", "tweet_id", "width", "height"} {
 			reply,_ := redis.String( conn.Do("HGET", "tweet:"+tweetId, key) )
 			resp[key] = reply
 		}

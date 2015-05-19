@@ -33,26 +33,34 @@ func main() {
 
 		newRespDone := make(chan bool)
 		cachedRespDone := make(chan bool)
+		searchDone := make(chan bool)
 
 		tw := twitter.Twitter{}
 
 		// spawn tweet search worker
-		go tw.SearchTweets(rawRespCh, respCh)
+		go tw.SearchTweets(tw.TwitterImages(), rawRespCh, respCh, searchDone)
+		go tw.SearchTweets(tw.Instagram(), rawRespCh, respCh, searchDone)
 		// spawn tweet cache fetch worker
 		go tw.TweetsFromCache(msgCh, cachedRespDone)
 
         // parse response from twitter API
 		go func() {
             <- cachedRespDone
-			for {
-                results, more := <- rawRespCh
 
-				if more {
-					// parse response from twitter API
+            searches := 0
+			for {
+				select {
+                case results, _ := <- rawRespCh:
+                	fmt.Println("------------------------------------------searchResults-----------------------------------------------------")
 					tw.TweetsFromResults(ctx, results, msgCh, newRespDone)
-				} else {
-					close(msgCh)
-					return
+				
+				case <- searchDone:
+					searches = searches + 1
+					if searches == 2 {
+						fmt.Println("+++++++++++++++++++++++++++++++++++++++++++searchEnded++++++++++++++++++++++++++++++++++++++++++++++++++++")
+						close(msgCh)
+						break
+					}
 				}
 			}
 		}()
@@ -65,12 +73,11 @@ func main() {
             for {
 				resp, more := <- msgCh
                 if more {
-					fmt.Println("received response")
 					if i != 0 {
 						ctx.Data(200, "application/json", []byte(","))
 					}
-
 					jsonString, _ := json.Marshal(resp)
+					fmt.Printf("%v", resp)
 					ctx.Data(200, "application/json", []byte(jsonString))
 					i++
 
