@@ -6,6 +6,7 @@ import (
   "github.com/gin-gonic/gin"
   "github.com/kurrik/oauth1a"
   "github.com/kurrik/twittergo"
+  "github.com/soveran/redisurl"
   "net/http"
   "net/url"
   "os"
@@ -18,8 +19,7 @@ type Twitter struct{
 var (
   TWITTER_COSUMER_KEY     = os.Getenv("TWITTER_CONSUMER_KEY")
   TWITTER_CONSUMER_SECRET = os.Getenv("TWITTER_CONSUMER_SECRET")
-  REDISTOGO, _ = url.Parse(os.Getenv("REDIS_URL"))
-   conn, _ = redis.Dial("tcp", REDISTOGO.Host)
+  conn, _ = redisurl.Connect()
 )
 
 func (tw Twitter) LoadCredentials() (client *twittergo.Client, err error) {
