@@ -3,12 +3,26 @@
 	"GoVersion": "go1.6",
 	"GodepVersion": "v74",
 	"Packages": [
-		"github.com/gin-gonic/gin"
+		"./..."
 	],
 	"Deps": [
 		{
 			"ImportPath": "github.com/davecgh/go-spew/spew",
 			"Rev": "5215b55f46b2b919f50a1df0eaa5886afe4e3b3d"
+		},
+		{
+			"ImportPath": "github.com/garyburd/redigo/internal",
+			"Comment": "v1.0.0-1-gb8dc900",
+			"Rev": "b8dc90050f24c1a73a52f107f3f575be67b21b7c"
+		},
+		{
+			"ImportPath": "github.com/garyburd/redigo/redis",
+			"Comment": "v1.0.0-1-gb8dc900",
+			"Rev": "b8dc90050f24c1a73a52f107f3f575be67b21b7c"
+		},
+		{
+			"ImportPath": "github.com/gin-gonic/contrib/static",
+			"Rev": "e9efbef205f470b07afe985980f9074bb955f39d"
 		},
 		{
 			"ImportPath": "github.com/gin-gonic/gin",
@@ -28,6 +42,14 @@
 		{
 			"ImportPath": "github.com/golang/protobuf/proto",
 			"Rev": "0c1f6d65b5a189c2250d10e71a5506f06f9fa0a0"
+		},
+		{
+			"ImportPath": "github.com/kurrik/oauth1a",
+			"Rev": "cb1b80e32dd4385099f8d09312e4bcf6bdc993ec"
+		},
+		{
+			"ImportPath": "github.com/kurrik/twittergo",
+			"Rev": "1152e2e0077dcee2a7e0ea0c4bd1dd72d89d9be2"
 		},
 		{
 			"ImportPath": "github.com/manucorporat/sse",
