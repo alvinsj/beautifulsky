@@ -1,6 +1,7 @@
 {
 	"ImportPath": "beautifulsky",
 	"GoVersion": "go1.6",
+	"GodepVersion": "v74",
 	"Deps": [
 		{
 			"ImportPath": "github.com/garyburd/redigo/redis",
@@ -16,9 +17,18 @@
 			"Rev": "5caaac4c5c712a9e7a7de29e6c24ef46c753017f"
 		},
 		{
-			"ImportPath": "github.com/julienschmidt/httprouter",
-			"Comment": "v1.1-29-g77366a4",
-			"Rev": "77366a47451a56bb3ba682481eed85b64fea14e8"
+			"ImportPath": "github.com/gin-gonic/gin/binding",
+			"Comment": "v1.0rc1-262-g5caaac4",
+			"Rev": "5caaac4c5c712a9e7a7de29e6c24ef46c753017f"
+		},
+		{
+			"ImportPath": "github.com/gin-gonic/gin/render",
+			"Comment": "v1.0rc1-262-g5caaac4",
+			"Rev": "5caaac4c5c712a9e7a7de29e6c24ef46c753017f"
+		},
+		{
+			"ImportPath": "github.com/golang/protobuf/proto",
+			"Rev": "0c1f6d65b5a189c2250d10e71a5506f06f9fa0a0"
 		},
 		{
 			"ImportPath": "github.com/kurrik/json",
@@ -31,6 +41,23 @@
 		{
 			"ImportPath": "github.com/kurrik/twittergo",
 			"Rev": "f56b9ac18bee46bb8dd01832dfee57bf1c9dc33c"
+		},
+		{
+			"ImportPath": "github.com/manucorporat/sse",
+			"Rev": "ee05b128a739a0fb76c7ebd3ae4810c1de808d6d"
+		},
+		{
+			"ImportPath": "golang.org/x/net/context",
+			"Rev": "bc3663df0ac92f928d419e31e0d2af22e683a5a2"
+		},
+		{
+			"ImportPath": "gopkg.in/go-playground/validator.v8",
+			"Comment": "v8.17.2",
+			"Rev": "25f1823069d853eccffbde025dca1812fa09c14b"
+		},
+		{
+			"ImportPath": "gopkg.in/yaml.v2",
+			"Rev": "a83829b6f1293c91addabc89d0571c246397bbf4"
 		}
 	]
 }
