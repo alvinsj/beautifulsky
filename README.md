@@ -1,4 +1,4 @@
-[beautifulsky.today](http://beautifulsky.today) - Pictures of beautiful sky. 
+[beautifulsky.today](http://beautifulsky.today) - Pictures of beautiful sky.
 
 This is a hack project to try out:
 - [golang](https://golang.org/): concurrency patterns, e.g. channels, goroutine, server side streaming.
@@ -17,7 +17,7 @@ This is a hack project to try out:
     $ go get gin
     $ go get redigo
     $ export TWITTER_CONSUMER_KEY=?; export TWITTER_CONSUME_SECRET=?
-    $ export PORT=8080; export REDISTOGO_URL=redis://localhost:6379
+    $ export PORT=8080; export REDIS_URL=redis://localhost:6379
     $ go run beautifulsky.go
 
 #### Requirement  
