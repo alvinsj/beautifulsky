@@ -21,10 +21,6 @@
 			"Rev": "b8dc90050f24c1a73a52f107f3f575be67b21b7c"
 		},
 		{
-			"ImportPath": "github.com/gin-gonic/contrib/static",
-			"Rev": "e9efbef205f470b07afe985980f9074bb955f39d"
-		},
-		{
 			"ImportPath": "github.com/gin-gonic/gin",
 			"Comment": "v1.0rc1-262-g5caaac4",
 			"Rev": "5caaac4c5c712a9e7a7de29e6c24ef46c753017f"
