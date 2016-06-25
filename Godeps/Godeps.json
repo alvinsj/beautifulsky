@@ -1,6 +1,6 @@
 {
 	"ImportPath": "beautifulsky",
-	"GoVersion": "go1.3.3",
+	"GoVersion": "go1.6",
 	"Deps": [
 		{
 			"ImportPath": "github.com/garyburd/redigo/redis",
