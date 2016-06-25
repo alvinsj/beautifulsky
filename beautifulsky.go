@@ -71,7 +71,7 @@ func main() {
 
         for {
           resp, more := <- msgCh
-          if more && i < 50 {
+          if more {
             if i != 0 {
               ctx.Data(200, "application/json", []byte(","))
             }
