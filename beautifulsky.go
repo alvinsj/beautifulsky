@@ -1,98 +1,113 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-	"github.com/gin-gonic/contrib/static"
-	"github.com/gin-gonic/gin"
-	"github.com/kurrik/twittergo"
-	"os"
-    "beautifulsky/twitter"
+  "encoding/json"
+  "fmt"
+  "github.com/gin-gonic/contrib/static"
+  "github.com/gin-gonic/gin"
+  "github.com/kurrik/twittergo"
+  "os"
+  "io"
+  "beautifulsky/twitter"
 )
 
 func main() {
-	r := gin.Default()
+  r := gin.Default()
 
-	pwd, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
+  pwd, err := os.Getwd()
+  if err != nil {
+    panic(err)
+  }
 
-	r.Use(static.Serve(pwd + "/frontend/public"))
-	r.NoRoute(static.Serve(pwd + "/frontend/public"))
+  r.Use(static.Serve(pwd + "/frontend/public"))
+  r.NoRoute(static.Serve(pwd + "/frontend/public"))
 
-	r.GET("/ping", func(c *gin.Context) {
-		c.String(200, "pong")
-	})
+  r.GET("/ping", func(c *gin.Context) {
+    c.String(200, "pong")
+  })
 
-	r.GET("/tweets", func(ctx *gin.Context) {
+  r.GET("/tweets", func(ctx *gin.Context) {
 
-		rawRespCh := make(chan *twittergo.SearchResults)
-		respCh := make(chan *twittergo.APIResponse)
-		msgCh := make(chan map[string]string)
+    rawRespCh := make(chan *twittergo.SearchResults)
+    respCh := make(chan *twittergo.APIResponse)
+    msgCh := make(chan map[string]string)
 
-		newRespDone := make(chan bool)
-		cachedRespDone := make(chan bool)
-		searchDone := make(chan bool)
+    newRespDone := make(chan bool)
+    // cachedRespDone := make(chan bool)
+    twitterSearchDone := make(chan bool)
 
-		tw := twitter.Twitter{}
+    tw := twitter.Twitter{}
 
-		// spawn tweet search worker
-		go tw.SearchTweets(tw.TwitterImages(), rawRespCh, respCh, searchDone)
-		go tw.SearchTweets(tw.Instagram(), rawRespCh, respCh, searchDone)
-		// spawn tweet cache fetch worker
-		go tw.TweetsFromCache(msgCh, cachedRespDone)
+    // spawn tweet search worker
+    go tw.SearchTweets(tw.TwitterImages(), rawRespCh, respCh, twitterSearchDone)
+    go tw.SearchTweets(tw.Instagram(), rawRespCh, respCh, twitterSearchDone)
 
-        // parse response from twitter API
-		go func() {
-            <- cachedRespDone
+    // spawn tweet cache fetch worker
+    go tw.TweetsFromCache(msgCh)
 
-            searches := 0
-			for {
-				select {
-                case results, _ := <- rawRespCh:
-                	fmt.Println("------------------------------------------searchResults-----------------------------------------------------")
-					tw.TweetsFromResults(ctx, results, msgCh, newRespDone)
-				
-				case <- searchDone:
-					searches = searches + 1
-					if searches == 2 {
-						fmt.Println("+++++++++++++++++++++++++++++++++++++++++++searchEnded++++++++++++++++++++++++++++++++++++++++++++++++++++")
-						close(msgCh)
-						break
-					}
-				}
-			}
-		}()
+    // parse response from twitter API
+    go func() {
+      // <- cachedRespDone
+      searches := 0
+      for {
+        select {
+        case results, _ := <- rawRespCh:
+          fmt.Println("-----TweetsFromResults")
+          tw.TweetsFromResults(ctx, results, msgCh)
 
-		// pipe messages to response
-		go func() {
-            i := 0
-            ctx.Data(200, "application/json", []byte("["))
+        case (<- twitterSearchDone):
+          searches = searches + 1
+          fmt.Println("-----TweetsFromResultsDone")
+          if searches == 2 {
+            fmt.Println("-----searchEnded")
+            close(msgCh)
+            break
+          }
+        }
+      }
+    }()
 
-            for {
-				resp, more := <- msgCh
-                if more {
-					if i != 0 {
-						ctx.Data(200, "application/json", []byte(","))
-					}
-					jsonString, _ := json.Marshal(resp)
-					fmt.Printf("%v", resp)
-					ctx.Data(200, "application/json", []byte(jsonString))
-					i++
+    // pipe messages to response
+    go func() {
+      i := 0
 
-				} else {
-					fmt.Println("received all jobs")
-					ctx.Data(200, "application/json", []byte("]"))
-					newRespDone <- true
-					return
-				}
-			}
-		}()
-		<-newRespDone
-        tw.PrintRateLimit(respCh)
-	})
+      ctx.Status(200);
+      ctx.Header("Content-Type", "application/json");
 
-	r.Run(":" + os.Getenv("PORT"))
+      ctx.Stream(func(w io.Writer) bool {
+        fmt.Println("!!!!! Starting, opening [")
+        w.Write([]byte("["))
+
+        for {
+          resp, more := <- msgCh
+          if more && i < 51 {
+
+            if i != 0 {
+              ctx.Data(200, "application/json", []byte(","))
+            }
+            jsonString, _ := json.Marshal(resp)
+            fmt.Printf("! responding tweet %v\n", i)
+
+            w.Write([]byte(jsonString))
+
+            i++
+          } else {
+            fmt.Println("!!!!! Finished, closing ]")
+            w.Write([]byte("]"))
+
+            newRespDone <- true
+            break
+          }
+        }
+        return false
+      })
+
+
+    }()
+    <- newRespDone
+    tw.PrintRateLimit(respCh)
+  })
+
+  r.Run(":" + os.Getenv("PORT"))
 
 }
