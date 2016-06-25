@@ -24,36 +24,47 @@ func main() {
     msgCh := make(chan map[string]string, 100)
 
     newRespDone := make(chan bool)
-    // cachedRespDone := make(chan bool)
+    cachedRespDone := make(chan bool)
     twitterSearchDone := make(chan bool)
+    instagramSearchDone := make(chan bool)
 
     tw := twitter.Twitter{}
 
     // spawn tweet search worker
     go tw.SearchTweets(tw.TwitterImages(), rawRespCh, twitterSearchDone)
-    go tw.SearchTweets(tw.Instagram(), rawRespCh, twitterSearchDone)
+    go tw.SearchTweets(tw.Instagram(), rawRespCh, instagramSearchDone)
 
     // spawn tweet cache fetch worker
-    go tw.TweetsFromCache(msgCh)
+    go tw.TweetsFromCache(msgCh, cachedRespDone)
 
     // parse response from twitter API
     go func() {
       // <- cachedRespDone
-      searches := 0
+      done := 0
       for {
         select {
         case results, _ := <- rawRespCh:
-          fmt.Printf("-----Parsing %v Tweets for #%v\n", len(results.Statuses()), searches+1)
+          fmt.Printf("-----Parsing %v Tweets for #%v\n", len(results.Statuses()), done+1)
           tw.TweetsFromResults(ctx, results, msgCh)
 
         case (<- twitterSearchDone):
-          fmt.Printf("-----/Parsing Tweets for #%v\n", searches+1)
-          searches = searches + 1
-          if searches == 2 {
-            fmt.Println("-----/ParseAllTweets")
-            close(msgCh)
-            break
-          }
+          fmt.Printf("-----twitterSearchDone\n")
+          done = done + 1
+
+        case (<- instagramSearchDone):
+          fmt.Printf("-----instagramSearchDone\n")
+          done = done + 1
+
+        case (<- cachedRespDone):
+          fmt.Printf("-----cachedRespDone\n")
+          done = done + 1
+
+        }
+
+        if done == 3 {
+          fmt.Println("-----/All Done")
+          close(msgCh)
+          break
         }
       }
     }()

@@ -196,7 +196,10 @@ func (tw Twitter) SearchTweets(
 }
 
 
-func (tw Twitter) TweetsFromCache(t chan map[string]string) {
+func (tw Twitter) TweetsFromCache(
+  t chan map[string]string,
+  searchDone chan bool) {
+
   l, _ := redis.Int(conn.Do("LLEN", "tweets"))
   for i:=0; i< l && i< 50; i++ {
     tweetId, _ := redis.String(conn.Do("LINDEX", "tweets", i))
@@ -208,6 +211,7 @@ func (tw Twitter) TweetsFromCache(t chan map[string]string) {
     fmt.Printf("+ return cache #%v\n", i+1)
     t <- resp
   }
+  searchDone <- true
 }
 
 
