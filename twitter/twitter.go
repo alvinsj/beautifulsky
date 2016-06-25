@@ -53,7 +53,7 @@ func (tw Twitter) TweetsFromResults(
     results *twittergo.SearchResults,
     t chan map[string]string) {
 
-    tweets := []uint64{}
+  tweets := []uint64{}
 
   for _, tweet := range results.Statuses() {
 
@@ -85,8 +85,8 @@ func (tw Twitter) TweetsFromResults(
 
           sizes := first["sizes"].(map[string]interface{})
           small := sizes["small"].(map[string]interface{})
-          h := small["h"].(int64)
-          w := small["w"].(int64)
+          h := small["h"].(float64)
+          w := small["w"].(float64)
           resp = tw.Memoize(resp, tweetId, "width",
             fmt.Sprintf("%d", w))
           resp = tw.Memoize(resp, tweetId, "height",
@@ -106,14 +106,13 @@ func (tw Twitter) TweetsFromResults(
         fmt.Sprintf("%v", tweet.CreatedAt().Format(time.RFC1123)))
 
       resp["source"] = "search"
+      fmt.Println("+ return parsed tweet")
       t <- resp
     }
   }
   for i:=len(tweets)-1; i >= 0; i-- {
     conn.Do("LPUSH", "tweets", tweets[i])
   }
-
-  fmt.Printf("/TweetsFromResults \n")
 }
 
 
@@ -131,7 +130,7 @@ func (tw Twitter) TwitterImages() url.Values {
   query := url.Values{}
   query.Set("q", "#beautifulsky filter:images")
   query.Set("result_type", "mixed")
-  query.Set("count", "100")
+  query.Set("count", "1000")
 
   if id, present := tw.RetrieveSinceId(); present {
     fmt.Println("+ sinceId(%v), using query %v", id, query)
@@ -146,7 +145,7 @@ func (tw Twitter) Instagram() url.Values {
   query := url.Values{}
   query.Set("q", "#beautifulsky")
   query.Set("result_type", "mixed")
-  query.Set("count", "100")
+  query.Set("count", "1000")
 
   if id, present := tw.RetrieveSinceId(); present {
     fmt.Println("+ sinceId(%v), using query %v", id, query)
@@ -159,8 +158,11 @@ func (tw Twitter) Instagram() url.Values {
 
 
 
-func (tw Twitter) SearchTweets(query url.Values, k chan *twittergo.SearchResults,
-    r chan *twittergo.APIResponse, searchDone chan bool){
+func (tw Twitter) SearchTweets(
+  query url.Values,
+  k chan *twittergo.SearchResults,
+  searchDone chan bool){
+
   var (
     err     error
     results *twittergo.SearchResults
@@ -188,11 +190,9 @@ func (tw Twitter) SearchTweets(query url.Values, k chan *twittergo.SearchResults
   if err != nil {
     fmt.Printf("Problem parsing response: %v\n", err)
   }
-  fmt.Printf("+ Tweets result: %v\n", len((*results).Statuses()))
 
   k <- results
   searchDone <- true
-  r <- resp
 }
 
 
@@ -205,6 +205,7 @@ func (tw Twitter) TweetsFromCache(t chan map[string]string) {
       reply,_ := redis.String( conn.Do("HGET", "tweet:"+tweetId, key) )
       resp[key] = reply
     }
+    fmt.Printf("+ return cache #%v\n", i+1)
     t <- resp
   }
 }

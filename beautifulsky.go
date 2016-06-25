@@ -19,9 +19,9 @@ func main() {
 
   r.GET("/tweets", func(ctx *gin.Context) {
 
-    rawRespCh := make(chan *twittergo.SearchResults)
-    respCh := make(chan *twittergo.APIResponse)
-    msgCh := make(chan map[string]string)
+    rawRespCh := make(chan *twittergo.SearchResults, 100)
+    respCh := make(chan *twittergo.APIResponse, 100)
+    msgCh := make(chan map[string]string, 100)
 
     newRespDone := make(chan bool)
     // cachedRespDone := make(chan bool)
@@ -30,8 +30,8 @@ func main() {
     tw := twitter.Twitter{}
 
     // spawn tweet search worker
-    go tw.SearchTweets(tw.TwitterImages(), rawRespCh, respCh, twitterSearchDone)
-    go tw.SearchTweets(tw.Instagram(), rawRespCh, respCh, twitterSearchDone)
+    go tw.SearchTweets(tw.TwitterImages(), rawRespCh, twitterSearchDone)
+    go tw.SearchTweets(tw.Instagram(), rawRespCh, twitterSearchDone)
 
     // spawn tweet cache fetch worker
     go tw.TweetsFromCache(msgCh)
@@ -43,14 +43,14 @@ func main() {
       for {
         select {
         case results, _ := <- rawRespCh:
-          fmt.Println("-----TweetsFromResults")
+          fmt.Printf("-----Parsing %v Tweets for #%v\n", len(results.Statuses()), searches+1)
           tw.TweetsFromResults(ctx, results, msgCh)
 
         case (<- twitterSearchDone):
+          fmt.Printf("-----/Parsing Tweets for #%v\n", searches+1)
           searches = searches + 1
-          fmt.Println("-----TweetsFromResultsDone")
           if searches == 2 {
-            fmt.Println("-----searchEnded")
+            fmt.Println("-----/ParseAllTweets")
             close(msgCh)
             break
           }
@@ -66,26 +66,23 @@ func main() {
       ctx.Header("Content-Type", "application/json");
 
       ctx.Stream(func(w io.Writer) bool {
-        fmt.Println("!!!!! Starting, opening [")
+        fmt.Println(">>> Starting, opening [")
         w.Write([]byte("["))
 
         for {
           resp, more := <- msgCh
-          if more && i < 51 {
-
+          if more && i < 50 {
             if i != 0 {
               ctx.Data(200, "application/json", []byte(","))
             }
             jsonString, _ := json.Marshal(resp)
-            fmt.Printf("! responding tweet %v\n", i)
+            fmt.Printf("> responding tweet %v\n", i+1)
 
             w.Write([]byte(jsonString))
-
             i++
           } else {
-            fmt.Println("!!!!! Finished, closing ]")
+            fmt.Println(">>> Finished, closing ]")
             w.Write([]byte("]"))
-
             newRespDone <- true
             break
           }
