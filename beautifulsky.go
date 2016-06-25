@@ -3,7 +3,6 @@ package main
 import (
   "encoding/json"
   "fmt"
-  "github.com/gin-gonic/contrib/static"
   "github.com/gin-gonic/gin"
   "github.com/kurrik/twittergo"
   "os"
@@ -13,14 +12,6 @@ import (
 
 func main() {
   r := gin.Default()
-
-  pwd, err := os.Getwd()
-  if err != nil {
-    panic(err)
-  }
-
-  r.Use(static.Serve(pwd + "/frontend/public"))
-  r.NoRoute(static.Serve(pwd + "/frontend/public"))
 
   r.GET("/ping", func(c *gin.Context) {
     c.String(200, "pong")
@@ -106,6 +97,14 @@ func main() {
     }()
     <- newRespDone
     tw.PrintRateLimit(respCh)
+  })
+  r.Static("/build", "./frontend/public/build/")
+  r.Static("/images", "./frontend/public/images/")
+  r.Static("/bower", "./frontend/public/bower/")
+  // r.StaticFile("/index.html", "./frontend/public/index.html")
+
+  r.GET("/", func(c *gin.Context) {
+      c.File("./frontend/public/index.html")
   })
 
   r.Run(":" + os.Getenv("PORT"))
