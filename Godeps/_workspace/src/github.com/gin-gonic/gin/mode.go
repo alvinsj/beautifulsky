@@ -6,9 +6,11 @@ package gin
 
 import (
 	"os"
+
+	"github.com/gin-gonic/gin/binding"
 )
 
-const GIN_MODE = "GIN_MODE"
+const ENV_GIN_MODE = "GIN_MODE"
 
 const (
 	DebugMode   string = "debug"
@@ -21,26 +23,46 @@ const (
 	testCode    = iota
 )
 
-var gin_mode int = debugCode
+// DefaultWriter is the default io.Writer used the Gin for debug output and
+// middleware output like Logger() or Recovery().
+// Note that both Logger and Recovery provides custom ways to configure their
+// output io.Writer.
+// To support coloring in Windows use:
+// 		import "github.com/mattn/go-colorable"
+// 		gin.DefaultWriter = colorable.NewColorableStdout()
+var DefaultWriter = os.Stdout
+var DefaultErrorWriter = os.Stderr
+
+var ginMode = debugCode
+var modeName = DebugMode
+
+func init() {
+	mode := os.Getenv(ENV_GIN_MODE)
+	if len(mode) == 0 {
+		SetMode(DebugMode)
+	} else {
+		SetMode(mode)
+	}
+}
 
 func SetMode(value string) {
 	switch value {
 	case DebugMode:
-		gin_mode = debugCode
+		ginMode = debugCode
 	case ReleaseMode:
-		gin_mode = releaseCode
+		ginMode = releaseCode
 	case TestMode:
-		gin_mode = testCode
+		ginMode = testCode
 	default:
-		panic("gin mode unknown, the allowed modes are: " + DebugMode + " and " + ReleaseMode)
+		panic("gin mode unknown: " + value)
 	}
+	modeName = value
 }
 
-func init() {
-	value := os.Getenv(GIN_MODE)
-	if len(value) == 0 {
-		SetMode(DebugMode)
-	} else {
-		SetMode(value)
-	}
+func DisableBindValidation() {
+	binding.Validator = nil
+}
+
+func Mode() string {
+	return modeName
 }
