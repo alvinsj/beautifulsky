@@ -3,7 +3,7 @@
 This is a hack project to try out:
 
 - [golang](https://golang.org/): concurrency patterns, e.g. channels, goroutine, server side streaming.
-- [reactjs](https://github.com/facebook/react): reactive pattern
+- [reactjs](https://github.com/facebook/react): browser view abstraction
 - [oboe.js](https://github.com/jimhigson/oboe.js): browser side streaming
 - [flexo](http://getflexo.com/): css flexbox boilerplate.
 
