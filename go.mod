@@ -9,8 +9,12 @@ require (
 	github.com/kurrik/oauth1a v0.0.0-20151019171716-cb1b80e32dd4
 	github.com/kurrik/twittergo v0.0.0-20160609170749-1152e2e0077d
 	github.com/manucorporat/sse v0.0.0-20160126180136-ee05b128a739 // indirect
+	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/soveran/redisurl v0.0.0-20130520141537-ac42ec99510b
+	github.com/stretchr/testify v1.6.1 // indirect
 	golang.org/x/net v0.0.0-20160621215608-bc3663df0ac9 // indirect
+	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
+	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/go-playground/validator.v8 v8.17.2 // indirect
 	gopkg.in/yaml.v2 v2.0.0-20160301204022-a83829b6f129 // indirect
 )
