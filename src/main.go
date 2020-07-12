@@ -7,7 +7,7 @@ import (
   "github.com/kurrik/twittergo"
   "os"
   "io"
-  "beautifulsky/twitter"
+  "beautifulsky/twitter" 
 )
 
 func main() {
